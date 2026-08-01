@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { DailyShift, DeliveryEntry } from '../types';
 import { useAuth } from './AuthContext';
-
+import { supabase } from '../lib/supabaseClient';
 
 interface ShiftContextType {
   activeShift: DailyShift | null;
@@ -17,8 +17,6 @@ interface ShiftContextType {
   updateActiveShiftCashInHand: (cashInHand: number) => void;
   getUserShifts: (userId: string) => DailyShift[];
 }
-
-
 
 const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 
@@ -36,6 +34,44 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     return [];
   });
+
+  // Load shifts from Supabase on mount/user change
+  useEffect(() => {
+    if (!user) return;
+    const fetchSupabaseShifts = async () => {
+      try {
+        const { data: dbShifts, error } = await supabase
+          .from('driver_tracker_daily_shifts')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && dbShifts && dbShifts.length > 0) {
+          const formatted: DailyShift[] = dbShifts.map((s: any) => ({
+            id: s.id,
+            userId: s.user_id,
+            date: s.shift_date,
+            dateFormatted: s.date_formatted,
+            startingBalance: Number(s.starting_balance),
+            lastShiftBalance: Number(s.last_shift_balance),
+            deliveries: [],
+            totalFare: Number(s.total_fare),
+            totalTip: Number(s.total_tip),
+            totalEarnings: Number(s.total_earnings),
+            cashInHand: s.cash_in_hand ? Number(s.cash_in_hand) : undefined,
+            netCompanyOwed: Number(s.net_company_owed),
+            status: s.status,
+            createdAt: s.created_at,
+            closedAt: s.closed_at,
+          }));
+          setShifts(formatted);
+        }
+      } catch (err) {
+        console.warn('Supabase shifts fetch notice:', err);
+      }
+    };
+
+    fetchSupabaseShifts();
+  }, [user]);
 
   useEffect(() => {
     localStorage.setItem('driver_app_shifts', JSON.stringify(shifts));
@@ -137,6 +173,27 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setShifts((prev) => [newShift, ...prev]);
+
+    // Insert new shift to Supabase database table
+    try {
+      supabase.from('driver_tracker_daily_shifts').insert({
+        user_id: user.id,
+        shift_date: todayStr,
+        date_formatted: todayFormatted,
+        starting_balance: startingBalance,
+        last_shift_balance: lastBalance,
+        total_fare: 0,
+        total_tip: 0,
+        total_earnings: 0,
+        net_company_owed: lastBalance,
+        status: 'active',
+        created_at: newShift.createdAt,
+      }).then(({ error }) => {
+        if (error) console.warn('Supabase shift insert notice:', error);
+      });
+    } catch (e) {
+      console.warn('Supabase shift insert exception:', e);
+    }
   };
 
   const addDelivery = (fare: number, tip: number, cashTaken?: number, notes?: string) => {
