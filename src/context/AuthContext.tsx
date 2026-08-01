@@ -78,17 +78,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check Supabase session on load and listen to auth state changes (OAuth redirects)
   useEffect(() => {
-    const handleSessionUser = (authUser: any, token: string) => {
+    const handleSessionUser = async (authUser: any, token: string) => {
       const userEmail = authUser.email || 'driver@google.com';
       const userName = authUser.user_metadata?.full_name || extractNameFromEmail(userEmail);
 
       setSessionToken(token);
 
+      let role: 'driver' | 'admin' = userEmail.toLowerCase().includes('admin') || userEmail.toLowerCase() === 'nrkb1998@gmail.com' ? 'admin' : 'driver';
+
+      // Automatically insert/upsert user profile into driver_tracker_profiles table upon login
+      try {
+        const { data: profile } = await supabase
+          .from('driver_tracker_profiles')
+          .upsert({
+            id: authUser.id,
+            email: userEmail,
+            name: userName,
+            role: role,
+            created_at: authUser.created_at || new Date().toISOString(),
+          }, { onConflict: 'id' })
+          .select('role')
+          .single();
+
+        if (profile && profile.role) {
+          role = profile.role as 'driver' | 'admin';
+        }
+      } catch (e) {
+        console.warn('Database auto-profile insert notice:', e);
+      }
+
       const existing: UserProfile = {
         id: authUser.id,
         email: userEmail,
         name: userName,
-        role: userEmail.includes('admin') ? 'admin' : 'driver',
+        role: role,
         createdAt: authUser.created_at || new Date().toISOString(),
       };
 
@@ -96,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAllUsers((prev) => {
         const found = prev.find((u) => u.email.toLowerCase() === userEmail.toLowerCase());
         if (!found) return [...prev, existing];
-        return prev;
+        return prev.map((u) => (u.id === existing.id ? existing : u));
       });
     };
 

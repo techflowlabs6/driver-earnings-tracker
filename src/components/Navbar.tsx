@@ -90,17 +90,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>Reports</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('admin')}
-            className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-1.5 ${
-              activeTab === 'admin'
-                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Admin</span>
-          </button>
+          {user.role === 'admin' && (
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-1.5 ${
+                activeTab === 'admin'
+                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Admin</span>
+            </button>
+          )}
         </div>
       )}
     </header>
