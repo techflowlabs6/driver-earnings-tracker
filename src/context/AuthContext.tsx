@@ -86,19 +86,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       let role: 'driver' | 'admin' = userEmail.toLowerCase().includes('admin') || userEmail.toLowerCase() === 'nrkb1998@gmail.com' ? 'admin' : 'driver';
 
-      // Query database dynamically for role from driver_tracker_profiles table
+      // Automatically insert/upsert user profile into driver_tracker_profiles table upon login
       try {
         const { data: profile } = await supabase
           .from('driver_tracker_profiles')
+          .upsert({
+            id: authUser.id,
+            email: userEmail,
+            name: userName,
+            role: role,
+            created_at: authUser.created_at || new Date().toISOString(),
+          }, { onConflict: 'id' })
           .select('role')
-          .eq('id', authUser.id)
           .single();
 
         if (profile && profile.role) {
           role = profile.role as 'driver' | 'admin';
         }
       } catch (e) {
-        console.warn('Database role query notice:', e);
+        console.warn('Database auto-profile insert notice:', e);
       }
 
       const existing: UserProfile = {
