@@ -84,11 +84,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setSessionToken(token);
 
+      const isAdmin = userEmail.toLowerCase().includes('admin') || userEmail.toLowerCase() === 'nrkb1998@gmail.com';
+
       const existing: UserProfile = {
         id: authUser.id,
         email: userEmail,
         name: userName,
-        role: userEmail.includes('admin') ? 'admin' : 'driver',
+        role: isAdmin ? 'admin' : 'driver',
         createdAt: authUser.created_at || new Date().toISOString(),
       };
 
