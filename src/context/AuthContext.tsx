@@ -166,7 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Trigger Supabase Google OAuth Provider redirect
       const redirectUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? window.location.origin
-        : `${window.location.origin}/driver-ering/`;
+        : `${window.location.origin}/driver/`;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
