@@ -38,6 +38,7 @@ CREATE POLICY "Admins read all profiles"
     )
   );
 
+DROP POLICY IF EXISTS "Users insert/update own profile" ON driver_tracker.driver_tracker_profiles;
 CREATE POLICY "Users insert/update own profile"
   ON driver_tracker.driver_tracker_profiles FOR ALL
   USING (auth.uid() = id)
