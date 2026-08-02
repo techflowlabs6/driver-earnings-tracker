@@ -38,9 +38,11 @@ CREATE POLICY "Admins read all profiles"
     )
   );
 
+DROP POLICY IF EXISTS "Users insert/update own profile" ON driver_tracker.driver_tracker_profiles;
 CREATE POLICY "Users insert/update own profile"
   ON driver_tracker.driver_tracker_profiles FOR ALL
-  USING (auth.uid() = id);
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
 
 
 -- 3. DAILY SHIFTS TABLE (driver_tracker_daily_shifts)

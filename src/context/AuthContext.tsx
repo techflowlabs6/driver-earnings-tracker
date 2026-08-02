@@ -32,10 +32,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         return JSON.parse(saved);
       } catch {
-        return null;
+        // fallback to default public account
       }
     }
-    return null;
+    return {
+      id: 'public-driver-guest',
+      email: 'guest@driverapp.com',
+      name: 'Public Driver',
+      role: 'driver',
+      createdAt: new Date().toISOString(),
+    };
   });
 
   const [sessionToken, setSessionToken] = useState<string | null>(() => {
@@ -88,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Automatically insert/upsert user profile into driver_tracker_profiles table upon login
       try {
-        const { data: profile } = await supabase
+        const { data: profile, error: dbError } = await supabase
           .from('driver_tracker_profiles')
           .upsert({
             id: authUser.id,
@@ -100,11 +106,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .select('role')
           .single();
 
-        if (profile && profile.role) {
+        if (dbError) {
+          console.warn('Database upsert profile notice:', dbError);
+        } else if (profile && profile.role) {
           role = profile.role as 'driver' | 'admin';
         }
       } catch (e) {
-        console.warn('Database auto-profile insert notice:', e);
+        console.warn('Database auto-profile insert exception:', e);
       }
 
       const existing: UserProfile = {
