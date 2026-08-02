@@ -32,10 +32,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         return JSON.parse(saved);
       } catch {
-        return null;
+        // fallback to default public account
       }
     }
-    return null;
+    return {
+      id: 'public-driver-guest',
+      email: 'guest@driverapp.com',
+      name: 'Public Driver',
+      role: 'driver',
+      createdAt: new Date().toISOString(),
+    };
   });
 
   const [sessionToken, setSessionToken] = useState<string | null>(() => {
